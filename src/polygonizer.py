@@ -536,7 +536,7 @@ def polygonizeSegment(image, start_pos):
             assert checkPoly(inner_poly)
 
             # Emit inner polygon
-            yield inner_poly
+            yield inner_poly[::-1]
 
             # Restore iterator value
             x, y = p
