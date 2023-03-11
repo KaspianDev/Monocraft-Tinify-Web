@@ -94,7 +94,7 @@ class PixelImage:
 
     def __setitem__(self, key, value):
         ''' Sets a pixel at (x, y).
-        
+
         Do nothing if out of bounds.
         '''
         x, y = key
@@ -186,6 +186,32 @@ class PixelImage:
                 ret.__data[i_] |= other.__data[j_min + i]
 
         return ret
+
+    def crop(self, min_x, max_x, min_y, max_y):
+        if max_x < min_x or max_y < min_y:
+            raise ValueError('Invalid bounds')
+
+        min_x = max(min_x, self._x)
+        max_x = min(max_x, self.x_end)
+        min_y = max(min_y, self._y)
+        max_y = min(max_y, self.y_end)
+        if max_x <= min_x or max_y <= min_y:
+            return PixelImage()
+
+        data = bytearray((max_x - min_x) * (max_y - min_y))
+        ix = 0
+        for j in range(min_y, max_y):
+            for i in range(min_x, max_x):
+                data[ix] = self[i, j]
+                ix += 1
+
+        return PixelImage(
+            x=min_x,
+            y=min_y,
+            width=max_x - min_x,
+            height=max_y - min_y,
+            data=data,
+        )
 
 
 def generatePolygons(image):
@@ -589,10 +615,13 @@ def polygonizeSegment(image, start_pos):
 
         del poly[i]
         for v in points.values():
-            v.discard(i)
+            if i in v:
+                v.remove(i)
+                v.add(j)
 
     # Emit polygons
     for i, _ in poly:
+        assert checkPoly(i)
         yield i
 
 
