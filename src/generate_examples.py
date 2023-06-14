@@ -34,10 +34,10 @@ def generateExamples(characters, ligatures, continuos_ligatures,
     characterOutput += "\n"
     for i in range(97, 123):
         characterOutput += chr(i) + " "
-    characterOutput += "\n" * 2
+    characterOutput += "\n"*2
     for i in range(48, 58):
         characterOutput += chr(i) + " "
-    characterOutput += "\n" * 2
+    characterOutput += "\n"*2
     for i in range(33, 48):
         characterOutput += chr(i) + " "
     for i in range(58, 65):
@@ -52,7 +52,7 @@ def generateExamples(characters, ligatures, continuos_ligatures,
             index = 0
             characterOutput += "\n"
         if i in charactersByCodepoint:
-            if index % 32 == 0:
+            if index % 48 == 0:
                 characterOutput += "\n"
             characterOutput += chr(i) + " "
             index += 1
