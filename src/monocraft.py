@@ -106,7 +106,13 @@ def generateFont():
                          for cp in ligature["sequence"][:-1]), f'{name}_liga'))
     print(f"Generated {len(ligatures)} ligatures")
 
-    for ligature in reversed(continuous_ligatures):
+    temp_class = tuple(charactersByCodepoint[i]["name"]
+                       for i in range(33, 127))
+
+    head_rules = []
+    body_rules = []
+    tail_rules = []
+    for ligature in continuous_ligatures:
         name = ligature["name"]
 
         head_table = f"head-table-{name}"
@@ -157,32 +163,29 @@ def generateFont():
         maybe_tail_cov = "[" + " ".join(
             frozenset(i[0] for a in [bodies, tails] for i in a)) + "]"
         head_process_cov = "[" + " ".join(i[1] for i in heads) + "]"
-        nontail_process_cov = "[" + " ".join(
-            frozenset(i[1] for a in [heads, bodies] for i in a)) + "]"
+        body_process_cov = "[" + " ".join(i[1] for i in bodies) + "]"
 
-        monocraft.addLookup(
-            f"cont-{name}",
-            "gsub_contextchain",
-            (),
-            (("calt", (("dflt", ("dflt")), ("latn", ("dflt")))), ),
+        head_rules.append(
+            f"| {head_cov} @<{head_table}> {body_cov} @<{body_table}> {body_cov} @<{body_table}> | {maybe_tail_cov}"
         )
-        monocraft.addContextualSubtable(
-            f"cont-{name}",
-            f"cont-{name}-tail-subtable",
-            "coverage",
-            f"{nontail_process_cov} | {tail_cov} @<{tail_table}> |",
+        body_rules.append(
+            f"{body_process_cov} | {body_cov} @<{body_table}> | {maybe_tail_cov}"
         )
+        tail_rules.append(f"{body_process_cov} | {tail_cov} @<{tail_table}> |")
+
+    monocraft.addLookup(
+        "cont-liga",
+        "gsub_contextchain",
+        (),
+        (("calt", (("dflt", ("dflt")), ("latn", ("dflt")))), ),
+    )
+    for n, i in enumerate(i for a in [head_rules, tail_rules, body_rules]
+                          for i in reversed(a)):
         monocraft.addContextualSubtable(
-            f"cont-{name}",
-            f"cont-{name}-head-subtable",
+            "cont-liga",
+            f"cont-{n}-subtable",
             "coverage",
-            f"| {head_cov} @<{head_table}> | {body_cov} {body_cov} {maybe_tail_cov}",
-        )
-        monocraft.addContextualSubtable(
-            f"cont-{name}",
-            f"cont-{name}-body-subtable",
-            "coverage",
-            f"{nontail_process_cov} | {body_cov} @<{body_table}> | {maybe_tail_cov}",
+            i,
         )
 
     print(f"Generated {len(continuous_ligatures)} continuous ligatures chain")
@@ -251,4 +254,5 @@ def drawImage(image, pen, *, dx=0, dy=0):
 
 
 generateFont()
-generateExamples(characters, ligatures, charactersByCodepoint)
+generateExamples(characters, ligatures, continuous_ligatures,
+                 charactersByCodepoint)
