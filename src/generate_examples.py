@@ -59,17 +59,17 @@ def generateExamples(characters, ligatures, continuos_ligatures,
     ))
     characterOutput += "\n"
     characterOutput += "\n".join(" ".join(l) for l in batched(
-        (chr(i) for i in range(383, 1120) if i in charactersByCodepoint),
+        (chr(i) for i in range(382, 1120) if i in charactersByCodepoint),
         48,
     ))
     characterOutput += "\n"
     characterOutput += "\n".join(" ".join(l) for l in batched(
-        (chr(i) for i in range(1121, 8363) if i in charactersByCodepoint),
+        (chr(i) for i in range(1120, 8363) if i in charactersByCodepoint),
         48,
     ))
     characterOutput += "\n"
     characterOutput += "\n".join(" ".join(l) for l in batched(
-        (chr(i) for i in range(8364, 65534) if i in charactersByCodepoint),
+        (chr(i) for i in range(8363, 65534) if i in charactersByCodepoint),
         48,
     ))
 
