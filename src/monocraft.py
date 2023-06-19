@@ -254,14 +254,6 @@ def imageFromArray(arr, x=0, y=0):
     )
 
 
-def drawImage(image, pen, *, dx=0, dy=0):
-    drawPolygon(
-        ((((x + dx) * PIXEL_SIZE, (y + dy) * PIXEL_SIZE) for x, y in polygon)
-         for polygon in generatePolygons(image)),
-        pen,
-    )
-
-
 def drawPolygon(poly, pen):
     for polygon in poly:
         start = True
@@ -276,8 +268,8 @@ def drawPolygon(poly, pen):
         pen.closePath()
 
 
-BOLD_WEIGHT = 48
-ITALIC_MAT = (1, 0, math.tan(math.radians(15)), 1, 0, 0)
+BOLD_DIST = 0.2
+ITALIC_RATIO = math.tan(math.radians(15))
 
 
 def createChar(fontList, code, name, image=None, *, width=None, dx=0, dy=0):
@@ -290,11 +282,38 @@ def createChar(fontList, code, name, image=None, *, width=None, dx=0, dy=0):
             char.width = width if width is not None else PIXEL_SIZE * 6
             continue
 
-        drawPolygon(poly, char.glyphPen())
+        p = poly
         if font.macstyle & 1 != 0:
-            char.changeWeight(BOLD_WEIGHT, "CJK", 0, 1, "auto", True)
-        if font.macstyle & 2 != 0:
-            char.transform(ITALIC_MAT, ("round", ))
+
+            def f(p):
+                l = len(p)
+                for i, (x, y) in enumerate(p):
+                    x_, y_ = x, y
+                    px, py = p[i - 1]
+                    if px < x:
+                        y_ += BOLD_DIST
+                    elif px > x:
+                        y_ -= BOLD_DIST
+                    elif py < y:
+                        x_ -= BOLD_DIST
+                    else:
+                        x_ += BOLD_DIST
+                    px, py = p[(i + 1) % l]
+                    if px < x:
+                        y_ -= BOLD_DIST
+                    elif px > x:
+                        y_ += BOLD_DIST
+                    elif py < y:
+                        x_ += BOLD_DIST
+                    else:
+                        x_ -= BOLD_DIST
+                    yield (x_, y_)
+
+            p = (f(p) for p in generatePolygons(image, join_polygons=False))
+        elif font.macstyle & 2 != 0:
+            p = (((x + y * ITALIC_RATIO, y) for x, y in p) for p in poly)
+
+        drawPolygon(p, char.glyphPen())
         char.width = width if width is not None else PIXEL_SIZE * 6
 
 

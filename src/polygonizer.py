@@ -214,9 +214,9 @@ class PixelImage:
         )
 
 
-def generatePolygons(image):
+def generatePolygons(image, **kw):
     for segment, start_pos in segmentize(image):
-        yield from polygonizeSegment(segment, start_pos)
+        yield from polygonizeSegment(segment, start_pos, **kw)
 
 
 def segmentize(image):
@@ -348,7 +348,7 @@ class CellFlag(IntFlag):
         return ret
 
 
-def polygonizeSegment(image, start_pos):
+def polygonizeSegment(image, start_pos, join_polygons=True):
     x, y = start_pos
 
     # Make sure position is top left
@@ -551,7 +551,8 @@ def polygonizeSegment(image, start_pos):
             if not v & CellFlag.ACTIVE:
                 continue
 
-            if not (image[x, y + 1] & CellFlag.ACTIVE or v & CellFlag.DOWN):
+            if not (image[x, y + 1] & CellFlag.ACTIVE
+                    or v & CellFlag.DOWN):
                 dir = CellFlag.LEFT
             else:
                 continue
@@ -586,38 +587,39 @@ def polygonizeSegment(image, start_pos):
             x, y = p
 
     # Try to join polygons
-    for i in range(len(poly) - 1, -1, -1):
-        inner_poly, points_ = poly[i]
+    if join_polygons:
+        for i in range(len(poly) - 1, -1, -1):
+            inner_poly, points_ = poly[i]
 
-        for v in points.values():
-            if len(v) > 1 and i in v:
-                j = min(v)
-                break
-        else:
-            continue
+            for v in points.values():
+                if len(v) > 1 and i in v:
+                    j = min(v)
+                    break
+            else:
+                continue
 
-        outer_poly, points__ = poly[j]
+            outer_poly, points__ = poly[j]
 
-        for i_, p in enumerate(inner_poly):
-            j_ = points__.get(p)
-            if j_ is not None:
-                break
-        else:
-            raise RuntimeError(
-                f'Should not happened {inner_poly} {outer_poly}')
+            for i_, p in enumerate(inner_poly):
+                j_ = points__.get(p)
+                if j_ is not None:
+                    break
+            else:
+                raise RuntimeError(
+                    f'Should not happened {inner_poly} {outer_poly}')
 
-        outer_poly[j_:j_] = [*inner_poly[i_:], *inner_poly[:i_]]
-        points__.update(
-            zip(
-                reversed(outer_poly),
-                range(len(outer_poly) - 1, -1, -1),
-            ))
+            outer_poly[j_:j_] = [*inner_poly[i_:], *inner_poly[:i_]]
+            points__.update(
+                zip(
+                    reversed(outer_poly),
+                    range(len(outer_poly) - 1, -1, -1),
+                ))
 
-        del poly[i]
-        for v in points.values():
-            if i in v:
-                v.remove(i)
-                v.add(j)
+            del poly[i]
+            for v in points.values():
+                if i in v:
+                    v.remove(i)
+                    v.add(j)
 
     # Emit polygons
     for i, _ in poly:
