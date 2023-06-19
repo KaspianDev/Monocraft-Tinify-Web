@@ -12,50 +12,66 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import random
+import itertools
+
+
+def batched(iterable, n):
+    "Batch data into tuples of length n. The last batch may be shorter."
+    # batched('ABCDEFG', 3) --> ABC DEF G
+    if n < 1:
+        raise ValueError('n must be at least one')
+    it = iter(iterable)
+    batch = tuple(itertools.islice(it, n))
+    while batch:
+        yield batch
+        batch = tuple(itertools.islice(it, n))
 
 
 def generateExamples(characters, ligatures, continuos_ligatures,
                      charactersByCodepoint):
     terminalOutput = 26 * "-" + " Monocraft " + 26 * "-"
-    index = 0
-    for character in characters:
-        if character["codepoint"] == 32:
-            continue
-        if index % 32 == 0:
-            terminalOutput += "\n"
-        terminalOutput += chr(character["codepoint"]) + " "
-        index += 1
+    terminalOutput += "\n"
+    terminalOutput += "\n".join(" ".join(l) for l in batched(
+        (chr(c["codepoint"]) for c in characters if c["codepoint"] != 32),
+        32,
+    ))
 
     print(terminalOutput)
 
     characterOutput = "--- Monocraft ---\n\n"
-    for i in range(65, 91):
-        characterOutput += chr(i) + " "
+    characterOutput += " ".join(map(chr, range(65, 91)))
     characterOutput += "\n"
-    for i in range(97, 123):
-        characterOutput += chr(i) + " "
-    characterOutput += "\n"*2
-    for i in range(48, 58):
-        characterOutput += chr(i) + " "
-    characterOutput += "\n"*2
-    for i in range(33, 48):
-        characterOutput += chr(i) + " "
-    for i in range(58, 65):
-        characterOutput += chr(i) + " "
-    for i in range(91, 97):
-        characterOutput += chr(i) + " "
-    for i in range(123, 127):
-        characterOutput += chr(i) + " "
-    index = 0
-    for i in range(161, 65534):
-        if i == 382 or i == 1120 or i == 8363:
-            index = 0
-            characterOutput += "\n"
-        if i in charactersByCodepoint:
-            if index % 48 == 0:
-                characterOutput += "\n"
-            characterOutput += chr(i) + " "
-            index += 1
+    characterOutput += " ".join(map(chr, range(97, 123)))
+    characterOutput += "\n" * 2
+    characterOutput += " ".join(map(chr, range(48, 58)))
+    characterOutput += "\n" * 2
+    characterOutput += " ".join(
+        chr(i) for i in itertools.chain(
+            range(33, 48),
+            range(58, 65),
+            range(91, 97),
+            range(123, 127),
+        ))
+    characterOutput += "\n"
+    characterOutput += "\n".join(" ".join(l) for l in batched(
+        (chr(i) for i in range(161, 382) if i in charactersByCodepoint),
+        48,
+    ))
+    characterOutput += "\n"
+    characterOutput += "\n".join(" ".join(l) for l in batched(
+        (chr(i) for i in range(383, 1120) if i in charactersByCodepoint),
+        48,
+    ))
+    characterOutput += "\n"
+    characterOutput += "\n".join(" ".join(l) for l in batched(
+        (chr(i) for i in range(1121, 8363) if i in charactersByCodepoint),
+        48,
+    ))
+    characterOutput += "\n"
+    characterOutput += "\n".join(" ".join(l) for l in batched(
+        (chr(i) for i in range(8364, 65534) if i in charactersByCodepoint),
+        48,
+    ))
 
     ligatureOutput = "--- Ligatures ---"
     for ligature in ligatures:
