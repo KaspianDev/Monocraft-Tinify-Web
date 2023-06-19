@@ -622,7 +622,7 @@ def polygonizeSegment(image, start_pos):
     # Emit polygons
     for i, _ in poly:
         assert checkPoly(i)
-        yield i
+        yield i[::-1]
 
 
 def checkPoly(poly):
