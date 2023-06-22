@@ -49,9 +49,6 @@ def generateFont():
         font.descent = PIXEL_SIZE
         font.em = PIXEL_SIZE * 9
         font.upos = -PIXEL_SIZE  # Underline position
-        font.addLookup("multi", "gsub_multiple", (),
-                       (("ccmp", (("dflt", ("dflt")), ("latn", ("dflt")))), ))
-        font.addLookupSubtable("multi", "multi-subtable")
         font.addLookup("ligatures", "gsub_ligature", (),
                        (("liga", (("dflt", ("dflt")), ("latn", ("dflt")))), ))
         font.addLookupSubtable("ligatures", "ligatures-subtable")
@@ -61,6 +58,7 @@ def generateFont():
     font = fontList[1]
     font.fontname = "Monocraft-Bold"
     font.fullname = "Monocraft Bold"
+    font.weight = "Bold"
     font.os2_stylemap = font.macstyle = 1
     font = fontList[2]
     font.fontname = "Monocraft-Italic"
@@ -87,37 +85,29 @@ def generateFont():
         image, kw = generateImage(ligature)
         name = ligature["name"].translate(str.maketrans(" ", "_"))
 
-        image_ = PixelImage(
-            x=6 - 6 * len(ligature["sequence"]),
-            y=image.y,
-            width=image.width,
-            height=image.height,
-            data=image.data,
+        createChar(
+            fontList,
+            -1,
+            name,
+            image,
+            width=6 * PIXEL_SIZE * len(ligature["sequence"]),
+            glyphclass="baseligature",
+            **kw,
         )
-        createChar(fontList, -1, f'{name}_liga', image_, **kw)
 
-        for cp in ligature["sequence"][:-1]:
-            if cp not in spacersByCodepoint:
-                createChar(fontList, -1,
-                           charactersByCodepoint[cp]["name"] + "_spacer")
-                spacersByCodepoint.add(cp)
-
-        createChar(fontList, -1, name)
         for font in fontList:
             lig = font[name]
             lig.addPosSub(
                 "ligatures-subtable",
                 tuple(charactersByCodepoint[cp]["name"]
-                      for cp in ligature["sequence"]))
-            lig.addPosSub(
-                "multi-subtable",
-                (*(charactersByCodepoint[cp]["name"] + "_spacer"
-                   for cp in ligature["sequence"][:-1]), f'{name}_liga'))
+                      for cp in ligature["sequence"]),
+            )
     print(f"Generated {len(ligatures)} ligatures")
 
     temp_class = tuple(charactersByCodepoint[i]["name"]
                        for i in range(33, 127))
 
+    temp = False
     head_rules = []
     body_rules = []
     tail_rules = []
@@ -137,6 +127,11 @@ def generateFont():
             for font in fontList:
                 font[cname].addPosSub(f"{head_table}-subtable", name_)
             heads.append((cname, name_))
+
+            if not temp:
+                chr = fontList[0][cname]
+                print(chr.manualHints, chr.dhints, chr.hhints, chr.vhints)
+                temp = True
 
         body_table = f"body-table-{name}"
         for font in fontList:
@@ -272,12 +267,22 @@ BOLD_DIST = 0.2
 ITALIC_RATIO = math.tan(math.radians(15))
 
 
-def createChar(fontList, code, name, image=None, *, width=None, dx=0, dy=0):
+def createChar(fontList,
+               code,
+               name,
+               image=None,
+               *,
+               width=None,
+               dx=0,
+               dy=0,
+               glyphclass=None):
     if image is not None:
         poly = [[(x + dx, y + dy) for x, y in p]
                 for p in generatePolygons(image)]
     for font in fontList:
         char = font.createChar(code, name)
+        if glyphclass is not None:
+            char.glyphclass = glyphclass
         if image is None:
             char.width = width if width is not None else PIXEL_SIZE * 6
             continue
