@@ -284,7 +284,7 @@ def createChar(fontList,
             def f(p):
                 l = len(p)
                 for i, (x, y) in enumerate(p):
-                    x_, y_ = x, y
+                    x_, y_ = x + dx, y + dy
                     px, py = p[i - 1]
                     if px < x:
                         y_ += BOLD_DIST
