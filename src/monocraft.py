@@ -104,10 +104,6 @@ def generateFont():
             )
     print(f"Generated {len(ligatures)} ligatures")
 
-    temp_class = tuple(charactersByCodepoint[i]["name"]
-                       for i in range(33, 127))
-
-    temp = False
     head_rules = []
     body_rules = []
     tail_rules = []
@@ -127,11 +123,6 @@ def generateFont():
             for font in fontList:
                 font[cname].addPosSub(f"{head_table}-subtable", name_)
             heads.append((cname, name_))
-
-            if not temp:
-                chr = fontList[0][cname]
-                print(chr.manualHints, chr.dhints, chr.hhints, chr.vhints)
-                temp = True
 
         body_table = f"body-table-{name}"
         for font in fontList:
