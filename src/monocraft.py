@@ -17,6 +17,7 @@ import os
 import fontforge
 import json
 import math
+import argparse
 from generate_diacritics import generateDiacritics
 from generate_examples import generateExamples
 from polygonizer import PixelImage, generatePolygons
@@ -35,9 +36,47 @@ charactersByCodepoint = {}
 spacersByCodepoint = set()
 
 
-def generateFont():
-    fontList = [fontforge.font() for _ in range(4)]
+def parseArgs():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--output-ttc",
+        action="store_true",
+        dest="output_ttc",
+    )
+    parser.add_argument(
+        "-a",
+        "--all",
+        action="store_true",
+        dest="all",
+    )
+    parser.add_argument(
+        "-b",
+        "--bold",
+        action="store_true",
+        dest="bold",
+    )
+    parser.add_argument(
+        "-i",
+        "--italic",
+        action="store_true",
+        dest="italic",
+    )
+    ret = parser.parse_args()
+    if ret.all:
+        ret.bold = ret.italic = True
+    return ret
+
+
+def generateFont(*, bold=False, italic=False, output_ttc=False, **kw):
+    fontList = [
+        fontforge.font(),
+        fontforge.font() if bold else None,
+        fontforge.font() if italic else None,
+        fontforge.font() if bold and italic else None,
+    ]
     for font in fontList:
+        if font is None:
+            continue
         font.fontname = "Monocraft"
         font.familyname = "Monocraft"
         font.fullname = "Monocraft"
@@ -54,23 +93,27 @@ def generateFont():
         font.addLookupSubtable("ligatures", "ligatures-subtable")
 
     font = fontList[0]
-    font.os2_stylemap = font.macstyle = 0
+    if font is not None:
+        font.os2_stylemap = font.macstyle = 0
     font = fontList[1]
-    font.fontname = "Monocraft-Bold"
-    font.fullname = "Monocraft Bold"
-    font.weight = "Bold"
-    font.os2_stylemap = font.macstyle = 1
+    if font is not None:
+        font.fontname = "Monocraft-Bold"
+        font.fullname = "Monocraft Bold"
+        font.weight = "Bold"
+        font.os2_stylemap = font.macstyle = 1
     font = fontList[2]
-    font.fontname = "Monocraft-Italic"
-    font.fullname = "Monocraft Italic"
-    font.os2_stylemap = font.macstyle = 2
-    font.italicangle = -15
+    if font is not None:
+        font.fontname = "Monocraft-Italic"
+        font.fullname = "Monocraft Italic"
+        font.os2_stylemap = font.macstyle = 2
+        font.italicangle = -15
     font = fontList[3]
-    font.fontname = "Monocraft-BoldItalic"
-    font.fullname = "Monocraft Bold Italic"
-    font.weight = "Bold"
-    font.os2_stylemap = font.macstyle = 3
-    font.italicangle = -15
+    if font is not None:
+        font.fontname = "Monocraft-BoldItalic"
+        font.fullname = "Monocraft Bold Italic"
+        font.weight = "Bold"
+        font.os2_stylemap = font.macstyle = 3
+        font.italicangle = -15
 
     for character in characters:
         charactersByCodepoint[character["codepoint"]] = character
@@ -83,12 +126,13 @@ def generateFont():
     if not os.path.exists(outputDir):
         os.makedirs(outputDir)
 
-    fontList[0].generateTtc(
-        outputDir + "Monocraft-no-ligatures.ttc",
-        fontList[1:],
-        ttcflags=("merge", ),
-        layer=1,
-    )
+    if output_ttc:
+        fontList[0].generateTtc(
+            outputDir + "Monocraft-no-ligatures.ttc",
+            [i for i in fontList[1:] if i is not None],
+            ttcflags=("merge", ),
+            layer=1,
+        )
 
     for ligature in ligatures:
         image, kw = generateImage(ligature)
@@ -105,6 +149,8 @@ def generateFont():
         )
 
         for font in fontList:
+            if font is None:
+                continue
             lig = font[name]
             lig.addPosSub(
                 "ligatures-subtable",
@@ -121,6 +167,8 @@ def generateFont():
 
         head_table = f"head-table-{name}"
         for font in fontList:
+            if font is None:
+                continue
             font.addLookup(head_table, "gsub_single", (), ())
             font.addLookupSubtable(head_table, f"{head_table}-subtable")
         heads = []
@@ -130,11 +178,15 @@ def generateFont():
             name_ = f"{cname}_{name}_head"
             createChar(fontList, -1, name_, image)
             for font in fontList:
+                if font is None:
+                    continue
                 font[cname].addPosSub(f"{head_table}-subtable", name_)
             heads.append((cname, name_))
 
         body_table = f"body-table-{name}"
         for font in fontList:
+            if font is None:
+                continue
             font.addLookup(body_table, "gsub_single", (), ())
             font.addLookupSubtable(body_table, f"{body_table}-subtable")
         bodies = []
@@ -144,11 +196,15 @@ def generateFont():
             name_ = f"{cname}_{name}_body"
             createChar(fontList, -1, name_, image)
             for font in fontList:
+                if font is None:
+                    continue
                 font[cname].addPosSub(f"{body_table}-subtable", name_)
             bodies.append((cname, name_))
 
         tail_table = f"tail-table-{name}"
         for font in fontList:
+            if font is None:
+                continue
             font.addLookup(tail_table, "gsub_single", (), ())
             font.addLookupSubtable(tail_table, f"{tail_table}-subtable")
         tails = []
@@ -158,6 +214,8 @@ def generateFont():
             name_ = f"{cname}_{name}_tail"
             createChar(fontList, -1, name_, image)
             for font in fontList:
+                if font is None:
+                    continue
                 font[cname].addPosSub(f"{tail_table}-subtable", name_)
             tails.append((cname, name_))
 
@@ -178,6 +236,8 @@ def generateFont():
         tail_rules.append(f"{body_process_cov} | {tail_cov} @<{tail_table}> |")
 
     for font in fontList:
+        if font is None:
+            continue
         font.addLookup(
             "cont-liga",
             "gsub_contextchain",
@@ -187,6 +247,8 @@ def generateFont():
     for n, i in enumerate(i for a in [head_rules, tail_rules, body_rules]
                           for i in reversed(a)):
         for font in fontList:
+            if font is None:
+                continue
             font.addContextualSubtable(
                 "cont-liga",
                 f"cont-{n}-subtable",
@@ -196,12 +258,26 @@ def generateFont():
 
     print(f"Generated {len(continuous_ligatures)} continuous ligatures chain")
 
-    fontList[0].generateTtc(
-        outputDir + "Monocraft.ttc",
-        fontList[1:],
-        ttcflags=("merge", ),
-        layer=1,
-    )
+    font = fontList[0]
+    if font is not None:
+        font.generate(outputDir + "Monocraft.otf")
+    font = fontList[1]
+    if font is not None:
+        font.generate(outputDir + "Monocraft-Bold.otf")
+    font = fontList[2]
+    if font is not None:
+        font.generate(outputDir + "Monocraft-Italic.otf")
+    font = fontList[3]
+    if font is not None:
+        font.generate(outputDir + "Monocraft-BoldItalic.otf")
+
+    if output_ttc:
+        fontList[0].generateTtc(
+            outputDir + "Monocraft.ttc",
+            [i for i in fontList[1:] if i is not None],
+            ttcflags=("merge", ),
+            layer=1,
+        )
 
 
 def generateImage(character):
@@ -282,7 +358,10 @@ def createChar(
         poly = [[(x + dx, y + dy) for x, y in p]
                 for p in generatePolygons(image)]
     for font in fontList:
+        if font is None:
+            continue
         char = font.createChar(code, name)
+        #char.manualHints = True
         if glyphclass is not None:
             char.glyphclass = glyphclass
         if image is None:
@@ -328,6 +407,7 @@ def createChar(
         char.width = width if width is not None else PIXEL_SIZE * 6
 
 
-generateFont()
+args = parseArgs()
+generateFont(**vars(args))
 generateExamples(characters, ligatures, continuous_ligatures,
                  charactersByCodepoint)
