@@ -61,7 +61,7 @@ def generateFont():
 	font.fullname = "Monocraft Italic"
 	font.os2_stylemap = font.macstyle = 2
 	font.italicangle = -15
-	font = fontList[2]
+	font = fontList[3]
 	font.fontname = "Monocraft-BoldItalic"
 	font.fullname = "Monocraft Bold Italic"
 	font.weight = "Bold"
@@ -78,13 +78,14 @@ def generateFont():
 	if not os.path.exists(outputDir):
 		os.makedirs(outputDir)
 
-	fontList[0].generate(outputDir + "Monocraft-no-ligatures.ttf")
-	fontList[0].generateTtc(
-		outputDir + "Monocraft-no-ligatures.ttc",
-		fontList[1:],
-		ttcflags=("merge",),
-		layer=1,
-	)
+	fontList[3].generate(outputDir + "Monocraft-Italic-Bold.ttf")
+	fontList[3].generate(outputDir + "Monocraft-Italic-Bold.otf")
+	fontList[2].generate(outputDir + "Monocraft-Italic.ttf")
+	fontList[2].generate(outputDir + "Monocraft-Italic.otf")
+	fontList[1].generate(outputDir + "Monocraft-Bold.ttf")
+	fontList[1].generate(outputDir + "Monocraft-Bold.otf")
+	fontList[0].generate(outputDir + "Monocraft.ttf")
+	fontList[0].generate(outputDir + "Monocraft.otf")
 
 	for ligature in ligatures:
 		image, kw = generateImage(ligature)
@@ -92,15 +93,6 @@ def generateFont():
 		for font in fontList:
 			font[ligature["name"]].addPosSub("ligatures-subtable", tuple(map(lambda codepoint: charactersByCodepoint[codepoint]["name"], ligature["sequence"])))
 	print(f"Generated {len(ligatures)} ligatures")
-
-	fontList[0].generate(outputDir + "Monocraft.ttf")
-	fontList[0].generate(outputDir + "Monocraft.otf")
-	fontList[0].generateTtc(
-		outputDir + "Monocraft.ttc",
-		fontList[1:],
-		ttcflags=("merge",),
-		layer=1,
-	)
 
 def generateImage(character):
 	image = PixelImage()
@@ -157,7 +149,7 @@ def drawPolygon(poly, pen):
 				pen.lineTo(x, y)
 		pen.closePath()
 
-BOLD_DIST = 0.1
+BOLD_DIST = 0.25
 ITALIC_MAT = (1, 0, math.tan(math.radians(15)), 1, 0, 0)
 
 def createChar(fontList, code, name, image=None, *, width=None, dx=0, dy=0):
