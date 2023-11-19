@@ -149,7 +149,7 @@ def drawPolygon(poly, pen):
 				pen.lineTo(x, y)
 		pen.closePath()
 
-BOLD_DIST = 0.25
+BOLD_DIST = 0.2
 ITALIC_MAT = (1, 0, math.tan(math.radians(15)), 1, 0, 0)
 
 def createChar(fontList, code, name, image=None, *, width=None, dx=0, dy=0):
